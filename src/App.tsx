@@ -7,6 +7,9 @@ import UserSelection from "./pages/UserSelection";
 import ChildHome from "./pages/child/ChildHome";
 import ChildExercises from "./pages/child/ChildExercises";
 import ChildProgress from "./pages/child/ChildProgress";
+import MemoryGame from "./pages/child/games/MemoryGame";
+import ShapeGame from "./pages/child/games/ShapeGame";
+import FunGame from "./pages/child/games/FunGame";
 import CaregiverDashboard from "./pages/caregiver/CaregiverDashboard";
 import TherapistDashboard from "./pages/therapist/TherapistDashboard";
 import NotFound from "./pages/NotFound";
@@ -26,6 +29,11 @@ const App = () => (
           <Route path="/child" element={<ChildHome />} />
           <Route path="/child/exercises/:type" element={<ChildExercises />} />
           <Route path="/child/progress" element={<ChildProgress />} />
+          
+          {/* Child Game Routes */}
+          <Route path="/child/play/memory/:id" element={<MemoryGame />} />
+          <Route path="/child/play/shapes/:id" element={<ShapeGame />} />
+          <Route path="/child/play/games/:id" element={<FunGame />} />
           
           {/* Caregiver Routes */}
           <Route path="/caregiver" element={<CaregiverDashboard />} />
