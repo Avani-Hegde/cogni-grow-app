@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button-enhanced";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Trophy, RotateCcw } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import ColorButton from "@/components/games/ColorButton";
+import ScoreDisplay from "@/components/games/ScoreDisplay";
+import GameControls from "@/components/games/GameControls";
+import StarRating from "@/components/games/StarRating";
 
 const MemoryGame = () => {
   const navigate = useNavigate();
@@ -18,9 +21,10 @@ const MemoryGame = () => {
   const [playerSequence, setPlayerSequence] = useState<number[]>([]);
   const [showingSequence, setShowingSequence] = useState(false);
   const [activeCard, setActiveCard] = useState<number | null>(null);
+  const [shakingCard, setShakingCard] = useState<number | null>(null);
+  const [wrongAttempts, setWrongAttempts] = useState(0);
 
-  const colors = ['bg-gradient-primary', 'bg-gradient-secondary', 'bg-gradient-success', 'bg-destructive'];
-  const cardLabels = ['🔵', '🟡', '🟢', '🔴'];
+  const colors: ('blue' | 'yellow' | 'green' | 'red')[] = ['blue', 'yellow', 'green', 'red'];
 
   const getGameData = () => {
     switch (id) {
@@ -67,12 +71,31 @@ const MemoryGame = () => {
     const isCorrect = newPlayerSequence.every((card, index) => card === sequence[index]);
     
     if (!isCorrect) {
-      setGameState('lost');
+      const newWrongAttempts = wrongAttempts + 1;
+      setWrongAttempts(newWrongAttempts);
+      
+      // Trigger shake animation
+      setShakingCard(cardIndex);
+      setTimeout(() => setShakingCard(null), 500);
+      
       toast({
         title: "Oops! 😅",
-        description: "That wasn't quite right. Try again!",
+        description: `That wasn't quite right. ${3 - newWrongAttempts} attempts left!`,
         variant: "destructive"
       });
+      
+      // Reset player sequence for retry
+      setPlayerSequence([]);
+      
+      // End game after 3 wrong attempts
+      if (newWrongAttempts >= 3) {
+        setGameState('lost');
+        toast({
+          title: "Game Over! 🎮",
+          description: "Don't worry, practice makes perfect!",
+          variant: "destructive"
+        });
+      }
       return;
     }
 
@@ -99,6 +122,8 @@ const MemoryGame = () => {
     setScore(0);
     setLevel(1);
     setPlayerSequence([]);
+    setWrongAttempts(0);
+    setShakingCard(null);
     generateSequence();
   };
 
@@ -129,20 +154,12 @@ const MemoryGame = () => {
           
           <div className="text-center">
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              {gameData.name}
+              Pattern Memory
             </h1>
-            <p className="text-lg text-muted-foreground">{gameData.description}</p>
+            <p className="text-lg text-muted-foreground">Watch the pattern and repeat it!</p>
           </div>
           
-          <div className="text-right">
-            <Badge variant="secondary" className="text-lg px-4 py-2 mb-2">
-              Level {level}
-            </Badge>
-            <div className="flex items-center gap-2">
-              <Star className="h-6 w-6 text-success fill-success" />
-              <span className="text-xl font-bold text-foreground">{score}</span>
-            </div>
-          </div>
+          <ScoreDisplay level={level} score={score} />
         </div>
 
         {/* Game Status */}
@@ -175,68 +192,32 @@ const MemoryGame = () => {
         {/* Game Grid */}
         <div className="grid grid-cols-2 gap-6 mb-8 max-w-md mx-auto">
           {colors.map((color, index) => (
-            <Card
+            <ColorButton
               key={index}
-              className={`cursor-pointer h-32 transition-all duration-300 ease-bounce transform hover:scale-105 active:scale-95 border-4 ${
-                activeCard === index 
-                  ? 'border-white shadow-2xl scale-110' 
-                  : 'border-transparent'
-              } ${color}`}
+              color={color}
+              isActive={activeCard === index}
+              isShaking={shakingCard === index}
               onClick={() => handleCardClick(index)}
-            >
-              <CardContent className="h-full flex items-center justify-center p-0">
-                <span className="text-6xl">{cardLabels[index]}</span>
-              </CardContent>
-            </Card>
+              disabled={showingSequence || gameState !== 'playing'}
+            />
           ))}
         </div>
 
         {/* Game Controls */}
-        <div className="flex justify-center gap-4">
-          <Button 
-            variant="child-secondary" 
-            size="child"
-            onClick={resetGame}
-          >
-            <RotateCcw className="h-6 w-6" />
-            Play Again
-          </Button>
-          
-          <Button 
-            variant="child-success" 
-            size="child"
-            onClick={() => {
-              const stars = getStarsEarned();
-              toast({
-                title: `Game Complete! 🎉`,
-                description: `You earned ${stars} stars and ${score} points!`,
-              });
-              navigate('/child');
-            }}
-          >
-            <Trophy className="h-6 w-6" />
-            Finish Game
-          </Button>
-        </div>
+        <GameControls 
+          onPlayAgain={resetGame}
+          onFinishGame={() => {
+            const stars = getStarsEarned();
+            toast({
+              title: `Game Complete! 🎉`,
+              description: `You earned ${stars} stars and ${score} points!`,
+            });
+            navigate('/child');
+          }}
+        />
 
         {/* Progress Indicator */}
-        <div className="mt-8 text-center">
-          <div className="flex justify-center items-center gap-2 mb-4">
-            {[1, 2, 3].map((star) => (
-              <Star 
-                key={star}
-                className={`h-8 w-8 ${
-                  star <= getStarsEarned() 
-                    ? 'text-success fill-success' 
-                    : 'text-muted-foreground'
-                }`}
-              />
-            ))}
-          </div>
-          <p className="text-muted-foreground">
-            Keep playing to earn more stars! 🌟
-          </p>
-        </div>
+        <StarRating starsEarned={getStarsEarned()} />
       </div>
     </div>
   );
